@@ -73,6 +73,7 @@ fetch("data/ezwel_rooms.json", { cache: "no-store" })
   .then(function (d) { DATA = d; setSync(); start(); })
   .catch(function (e) { document.getElementById("stamp").textContent = "데이터를 불러오지 못했습니다: " + e.message; });
 function setSync() { var el = document.getElementById("sync"); var t = DATA.fetchedAt; var when = t ? new Date(t).toLocaleString("ko-KR", { timeZone: "Asia/Seoul", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" }) : "—"; el.textContent = "동기화 " + when + " (KST)"; }
+function start() {
 (function () {
   var stays = DATA.stays || [];
   var flagged = DATA.flagged || [];
@@ -194,6 +195,7 @@ function setSync() { var el = document.getElementById("sync"); var t = DATA.fetc
   buildHeader();
   render();
 })();
+}
 }
 </script>
 </body>
