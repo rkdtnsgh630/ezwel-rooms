@@ -89,7 +89,7 @@ $out = [pscustomobject]@{
   stays = @($stays | Sort-Object hotel, roomNm, checkIn)
   flagged = @($flags)
 }
-$text = $out | ConvertTo-Json -Depth 6
+$text = $out | ConvertTo-Json -Depth 6 -Compress
 [IO.File]::WriteAllText($OutPath, $text, (New-Object Text.UTF8Encoding $false))
 
 "저장: $OutPath"

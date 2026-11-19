@@ -68,7 +68,7 @@ ul{margin:0;padding-left:18px}
 
 <script>
 var DATA = null;
-fetch("data/ezwel_rooms.json", { cache: "no-store" })
+fetch("https://raw.githubusercontent.com/rkdtnsgh630/ezwel-rooms/main/data/ezwel_rooms.json?t=" + Date.now(), { cache: "no-store" })
   .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
   .then(function (d) { DATA = d; setSync(); start(); })
   .catch(function (e) { document.getElementById("stamp").textContent = "데이터를 불러오지 못했습니다: " + e.message; });
