@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>이지웰 객실별 신청자 현황</title>
+<style>
+:root{--bg:#f6f5f1;--fg:#1d1f24;--muted:#6b6f78;--line:#dcdad2;--card:#ffffff;--accent:#2f6f5e;--bad:#a13b2c}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#15171b;--fg:#ecebe6;--muted:#9a9ea6;--line:#2c3036;--card:#1d2026;--accent:#6fbfa6;--bad:#e27d6c;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#15171b;--fg:#ecebe6;--muted:#9a9ea6;--line:#2c3036;--card:#1d2026;--accent:#6fbfa6;--bad:#e27d6c;color-scheme:dark}
+body{background:var(--bg);color:var(--fg);font-family:"Malgun Gothic",system-ui,sans-serif;margin:0;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px;font-size:14px;line-height:1.5}
+h1{font-size:20px;margin:0 0 4px}
+h2{font-size:15px;margin:0 0 10px}
+.sub{color:var(--muted);margin:0 0 16px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:20px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px}
+.kpi .l{color:var(--muted);font-size:12px}
+.kpi .v{font-size:24px;font-variant-numeric:tabular-nums;font-weight:700;color:var(--accent)}
+.kpi .s{color:var(--muted);font-size:12px;font-variant-numeric:tabular-nums}
+.controls{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+select,input{font:inherit;padding:7px 10px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--fg);min-width:0;max-width:100%}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:20px;min-width:0}
+.tablewrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;min-width:560px}
+th,td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+th{color:var(--muted);font-weight:600}
+th button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;white-space:nowrap}
+th button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+td.wrap{white-space:normal;min-width:180px}
+.num{text-align:right;font-variant-numeric:tabular-nums}
+th.num button{float:right}
+ul{margin:0;padding-left:18px}
+.failed li{color:var(--bad)}
+.note{color:var(--muted);font-size:12px}
+.empty{color:var(--muted);padding:12px 0}
+</style>
+</head>
+<body>
+<h1>이지웰 40개 숙소 객실별 신청자</h1>
+<p class="sub" id="stamp"></p>
+
+<div class="kpis">
+  <div class="kpi"><div class="l">일정 건수</div><div class="v" id="k-items">—</div><div class="s" id="k-split"></div></div>
+  <div class="kpi"><div class="l">총 신청자</div><div class="v" id="k-total">—</div></div>
+  <div class="kpi"><div class="l">숙소 수</div><div class="v" id="k-hotels">—</div></div>
+  <div class="kpi"><div class="l">조회 실패</div><div class="v" id="k-failed">—</div></div>
+</div>
+
+<div class="panel" id="failed-panel" hidden>
+  <h2>조회 실패한 숙소</h2>
+  <ul class="failed" id="failed-list"></ul>
+</div>
+
+<div class="panel">
+  <h2>일정별 신청자 (2박·1박)</h2>
+  <div class="controls">
+    <input id="f-hotel" type="search" placeholder="숙소명 검색" aria-label="숙소명 검색">
+    <input id="f-q" type="search" placeholder="객실명 검색" aria-label="객실명 검색">
+  </div>
+  <div class="tablewrap">
+    <table>
+      <thead><tr id="thead"></tr></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+  <div class="empty" id="empty" hidden>조건에 맞는 데이터가 없습니다.</div>
+</div>
+
+<script>
+var DATA = null;
+fetch("data/ezwel_rooms.json", { cache: "no-store" })
+  .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+  .then(function (d) { DATA = d; start(); })
+  .catch(function (e) { document.getElementById("stamp").textContent = "데이터를 불러오지 못했습니다: " + e.message; });
+function start() {
+(function () {
+  var stays = DATA.stays || [];
+  var flagged = DATA.flagged || [];
+  var failed = DATA.failed || [];
+  var state = { hotel: "", q: "", key: "ratio", dir: -1 };
+
+  function fmt(n) { return Number(n || 0).toLocaleString("ko-KR"); }
+
+  function ratio(applicants, rooms) {
+    var n = rooms > 0 ? applicants / rooms : 0;
+    return { n: n, t: rooms > 0 ? n.toFixed(2) + ":1" : "-" };
+  }
+
+  var all = stays.map(function (r) {
+    return { status: "2박", hotel: r.hotel, roomNm: r.roomNm, start: r.checkIn,
+             period: r.checkIn + " ~ " + r.checkOut, applicants: Number(r.applicants) || 0, rooms: Number(r.rooms) || 0, ratio: ratio(Number(r.applicants) || 0, Number(r.rooms) || 0).n, ratioTxt: ratio(Number(r.applicants) || 0, Number(r.rooms) || 0).t };
+  }).concat(flagged.map(function (r) {
+    return { status: "1박", hotel: r.hotel, roomNm: r.roomNm, start: r.date,
+             period: r.date, applicants: Number(r.applicants) || 0, rooms: Number(r.rooms) || 0, ratio: ratio(Number(r.applicants) || 0, Number(r.rooms) || 0).n, ratioTxt: ratio(Number(r.applicants) || 0, Number(r.rooms) || 0).t };
+  }));
+
+  var cols = [
+    { key: "status", label: "구분", type: "s" },
+    { key: "hotel", label: "숙소명", type: "s" },
+    { key: "roomNm", label: "객실명", type: "s", wrap: true },
+    { key: "start", label: "숙박기간", type: "s", show: "period" },
+    { key: "applicants", label: "신청자", type: "n", num: true },
+    { key: "rooms", label: "배정 객실", type: "n", num: true },
+    { key: "ratio", label: "경쟁률", type: "n", num: true, show: "ratioTxt" }
+  ];
+
+  function cmp(a, b, col) {
+    var x = a[col.key], y = b[col.key];
+    if (col.type === "n") return x - y;
+    return String(x).localeCompare(String(y), "ko");
+  }
+
+  function sorted(list) {
+    var main = cols.filter(function (c) { return c.key === state.key; })[0];
+    return list.slice().sort(function (a, b) {
+      var r = cmp(a, b, main) * state.dir;
+      if (r !== 0) return r;
+      return cmp(a, b, cols[1]) || cmp(a, b, cols[2]) || cmp(a, b, cols[3]);
+    });
+  }
+
+  function buildHeader() {
+    var tr = document.getElementById("thead");
+    cols.forEach(function (c) {
+      var th = document.createElement("th");
+      if (c.num) th.className = "num";
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.dataset.key = c.key;
+      btn.addEventListener("click", function () {
+        if (state.key === c.key) { state.dir = -state.dir; }
+        else { state.key = c.key; state.dir = 1; }
+        render();
+      });
+      th.appendChild(btn);
+      tr.appendChild(th);
+    });
+  }
+
+  function updateHeader() {
+    var btns = document.querySelectorAll("#thead button");
+    btns.forEach(function (b) {
+      var c = cols.filter(function (x) { return x.key === b.dataset.key; })[0];
+      var arrow = "";
+      if (state.key === c.key) arrow = state.dir === 1 ? " ▲" : " ▼";
+      b.textContent = c.label + arrow;
+      b.parentElement.setAttribute("aria-sort",
+        state.key === c.key ? (state.dir === 1 ? "ascending" : "descending") : "none");
+    });
+  }
+
+  function render() {
+    var list = sorted(all.filter(function (r) {
+      if (state.hotel && r.hotel.toLowerCase().indexOf(state.hotel.toLowerCase()) === -1) return false;
+      if (state.q && String(r.roomNm).indexOf(state.q) === -1) return false;
+      return true;
+    }));
+    var tbody = document.getElementById("tbody");
+    tbody.textContent = "";
+    list.forEach(function (r) {
+      var tr = document.createElement("tr");
+      cols.forEach(function (c) {
+        var td = document.createElement("td");
+        var v = c.show ? r[c.show] : r[c.key];
+        td.textContent = (c.type === "n" && !c.show) ? fmt(v) : v;
+        if (c.wrap) td.className = "wrap";
+        if (c.num) td.className = "num";
+        tr.appendChild(td);
+      });
+      tbody.appendChild(tr);
+    });
+    document.getElementById("empty").hidden = list.length > 0;
+    updateHeader();
+  }
+
+  var n2 = stays.length, n1 = flagged.length;
+  document.getElementById("stamp").textContent =
+    "마지막 조회 " + (DATA.fetchedAt || "—") + " · 조회 월 " + (DATA.months || []).join(", ");
+  document.getElementById("k-items").textContent = fmt(all.length);
+  document.getElementById("k-split").textContent = "2박 " + fmt(n2) + " · 1박 " + fmt(n1);
+  document.getElementById("k-total").textContent = fmt(all.reduce(function (s, r) { return s + r.applicants; }, 0));
+  document.getElementById("k-hotels").textContent = fmt(new Set(all.map(function (r) { return r.hotel; })).size);
+  document.getElementById("k-failed").textContent = fmt(failed.length);
+
+  var fl = document.getElementById("failed-list");
+  failed.forEach(function (r) {
+    var li = document.createElement("li"); li.textContent = r.hotel + " (" + r.month + ") — " + r.error; fl.appendChild(li);
+  });
+  document.getElementById("failed-panel").hidden = failed.length === 0;
+
+  document.getElementById("f-hotel").addEventListener("input", function (e) { state.hotel = e.target.value.trim(); render(); });
+  document.getElementById("f-q").addEventListener("input", function (e) { state.q = e.target.value.trim(); render(); });
+
+  buildHeader();
+  render();
+})();
+}
+</script>
+</body>
+</html>
