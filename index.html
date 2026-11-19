@@ -206,8 +206,8 @@ function start() {
   function tick() {
     var now = Date.now();
     var target, text;
-    if (now < START) { target = START; text = "신청 시작까지"; }
-    else if (now <= END) { target = END; text = "신청 마감까지"; }
+    if (now < START) { target = START; text = "신청 시작까지 남은 시간"; }
+    else if (now <= END) { target = END; text = "신청 마감까지 남은 시간"; }
     else { label.textContent = "신청 기간 종료"; time.textContent = "-"; return; }
     var s = Math.floor((target - now) / 1000);
     var d = Math.floor(s / 86400); s = s % 86400;
