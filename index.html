@@ -40,6 +40,7 @@ ul{margin:0;padding-left:18px}
 <p class="sub" id="stamp" hidden></p>
 
 <div class="cd" id="countdown"><div class="cd-row"><div><div class="cd-label" id="cd-label">불러오는 중…</div><div class="cd-time" id="cd-time">-</div></div><a class="cta" href="https://donga.ezwel.com/pc/lodgement/rest-center/four-seasons/reservation/choice/2004?seasDivCd=1002" target="_blank" rel="noopener">신청하러 가기</a></div><div class="cd-sub">신청기간 11월 17일(화) 10:00 ~ 11월 23일(월) 23:59 · 당첨발표 11월 27일(금) 10:00 이후</div></div>
+<div class="cd" id="countdown2"><div class="cd-label" id="rs-label">불러오는 중…</div><div class="cd-time" id="rs-time">-</div><div class="cd-sub">당첨발표 11월 27일(금) 10:00</div></div>
 <div class="kpis">
   <div class="kpi"><div class="l">일정 건수</div><div class="v" id="k-items">—</div><div class="s" id="k-split"></div></div>
   <div class="kpi"><div class="l">총 신청자</div><div class="v" id="k-total">—</div></div>
@@ -215,6 +216,23 @@ function start() {
     var h = Math.floor(s / 3600); s = s % 3600;
     var m = Math.floor(s / 60); s = s % 60;
     label.textContent = text;
+    time.textContent = (d > 0 ? d + "일 " : "") + pad(h) + ":" + pad(m) + ":" + pad(s);
+  }
+  tick();
+  setInterval(tick, 1000);
+})();(function () {
+  var RESULT = new Date("2026-11-27T10:00:00+09:00").getTime();
+  var label = document.getElementById("rs-label");
+  var time = document.getElementById("rs-time");
+  function pad(n) { return String(n).padStart(2, "0"); }
+  function tick() {
+    var now = Date.now();
+    if (now >= RESULT) { label.textContent = "당첨 발표 완료"; time.textContent = "-"; return; }
+    var s = Math.floor((RESULT - now) / 1000);
+    var d = Math.floor(s / 86400); s = s % 86400;
+    var h = Math.floor(s / 3600); s = s % 3600;
+    var m = Math.floor(s / 60); s = s % 60;
+    label.textContent = "당첨발표까지 남은 시간";
     time.textContent = (d > 0 ? d + "일 " : "") + pad(h) + ":" + pad(m) + ":" + pad(s);
   }
   tick();
