@@ -2,8 +2,8 @@ name: 이지웰 데이터 갱신
 
 on:
   schedule:
-    # 매일 09:00 KST (UTC 00:00)
-    - cron: "0 0 * * *"
+    # 매시 정각 (KST 기준 1시간마다)
+    - cron: "0 * * * *"
   workflow_dispatch:
 
 permissions:
