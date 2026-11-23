@@ -27,14 +27,21 @@ jobs:
         run: |
           set -e
           cp out/ezwel_rooms.json "$RUNNER_TEMP/ezwel_rooms.json"
+          NEW_COUNT=$(jq '.stays | length' out/ezwel_rooms.json)
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git fetch origin
           if git ls-remote --exit-code --heads origin data >/dev/null 2>&1; then
             git checkout -B data origin/data
+            OLD_COUNT=$(jq '.stays | length' ezwel_rooms.json 2>/dev/null || echo 0)
           else
             git checkout --orphan data
             git rm -rf -q . || true
+            OLD_COUNT=0
+          fi
+          if [ "$NEW_COUNT" = "0" ] && [ "$OLD_COUNT" != "0" ]; then
+            echo "신청 결과가 없어 이전 데이터를 유지합니다(마감 후 등)."
+            exit 0
           fi
           cp "$RUNNER_TEMP/ezwel_rooms.json" ezwel_rooms.json
           git add ezwel_rooms.json
